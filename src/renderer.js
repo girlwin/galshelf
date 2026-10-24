@@ -197,7 +197,7 @@
     if (ui.status !== 'all') games = games.filter(game => game.status === ui.status);
     const terms = ui.query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     if (terms.length) games = games.filter(game => {
-      const haystack = [game.title, game.originalTitle, game.developer, game.notes, ...categoriesFor(game).map(category => category.name)].join(' ').toLocaleLowerCase();
+      const haystack = [game.title, game.originalTitle, game.developer, game.notes, statuses[game.status], ...categoriesFor(game).map(category => category.name)].join(' ').toLocaleLowerCase();
       return terms.every(term => haystack.includes(term));
     });
     return games.sort((a, b) => {
@@ -269,10 +269,16 @@
     cover.append(...coverContents(game), h('span', { class: 'cover-gradient' }), h('span', { class: `cover-status ${game.status || 'unplayed'}` }, statuses[game.status] || statuses.unplayed), game.favorite ? h('span', { class: 'card-favorite' }, icon('heart')) : document.createTextNode(''), h('span', { class: 'cover-hover' }, h('span', {}, '查看故事')));
     const categories = categoriesFor(game);
     const tags = h('div', { class: 'card-tags' });
+    if (game.status === 'finished') tags.append(h('span', { class: 'tag completion-tag' }, icon('check'), '已通关'));
     for (const category of categories.slice(0, 2)) tags.append(h('span', { class: 'tag', title: category.name }, category.name));
     if (categories.length > 2) tags.append(h('span', { class: 'tag more-tag', title: categories.slice(2).map(category => category.name).join('、') }, `+${categories.length - 2}`));
     if (!categories.length) tags.append(h('span', { class: 'tag more-tag' }, '尚未分类'));
-    return h('article', { class: 'game-card' }, cover, h('div', { class: 'card-info' }, h('h3', { class: 'card-title', title: game.title }, button(game.title, () => openGameDetail(game.id), 'title-button')), h('div', { class: 'card-developer', title: game.developer || '' }, game.developer || '未填写制作组'), tags, h('div', { class: 'card-footer' }, h('span', { class: 'card-time', title: duration(seconds(game)) }, icon('clock'), duration(seconds(game), true)), button('启动', event => launch(game.id, event.currentTarget), 'card-launch', 'play'))));
+    const completed = game.status === 'finished';
+    const completion = button(completed ? '取消通关' : '标记通关', event => changeGameStatus(game.id, completed ? 'unplayed' : 'finished', event.currentTarget), 'button subtle card-completed-toggle', 'check');
+    completion.dataset.gameId = game.id;
+    completion.setAttribute('aria-label', `${completed ? '取消' : '标记'} ${game.title} 的通关标签`);
+    completion.setAttribute('aria-pressed', String(completed));
+    return h('article', { class: 'game-card' }, cover, h('div', { class: 'card-info' }, h('h3', { class: 'card-title', title: game.title }, button(game.title, () => openGameDetail(game.id), 'title-button')), h('div', { class: 'card-developer', title: game.developer || '' }, game.developer || '未填写制作组'), tags, h('div', { class: 'card-footer' }, h('span', { class: 'card-time', title: duration(seconds(game)) }, icon('clock'), duration(seconds(game), true)), button('启动', event => launch(game.id, event.currentTarget), 'card-launch', 'play')), completion));
   }
 
   function renderCategories(root) {
@@ -451,6 +457,10 @@
     const developer = h('input', { id: 'game-developer', class: 'text-input', type: 'text', value: original?.developer || '', placeholder: '制作组 / 品牌', maxlength: 200 });
     const status = h('select', { id: 'game-status', class: 'text-input' }, ...Object.entries(statuses).map(([value, label]) => h('option', { value }, label)));
     status.value = original?.status || 'unplayed';
+    let previousStatus = status.value === 'finished' ? 'unplayed' : status.value;
+    const completed = h('input', { id: 'game-completed', type: 'checkbox', checked: status.value === 'finished' });
+    status.addEventListener('change', () => { completed.checked = status.value === 'finished'; if (!completed.checked) previousStatus = status.value; });
+    completed.addEventListener('change', () => { if (completed.checked) { if (status.value !== 'finished') previousStatus = status.value; status.value = 'finished'; } else status.value = previousStatus; });
     const exe = h('input', { id: 'game-exe', class: 'text-input', type: 'text', value: original?.exePath || '', placeholder: '选择游戏的 .exe 或启动快捷方式' });
     const cover = h('input', { id: 'game-cover', class: 'text-input', type: 'text', value: original?.coverPath || '', placeholder: '选择本地图片作为游戏封面' });
     const workDir = h('input', { id: 'game-workdir', class: 'text-input', type: 'text', value: original?.workDir || '', placeholder: '留空时使用游戏程序所在目录' });
@@ -561,7 +571,8 @@
     const recognition = h('section', { class: 'game-recognition', 'aria-label': '本地游戏识别' }, h('div', { class: 'recognition-heading' }, h('div', {}, h('h3', {}, '从本机文件夹开始'), scanNotice), folderButton), candidateField,
       h('div', { class: 'metadata-search-row' }, h('label', { for: 'metadata-query', class: 'sr-only' }, 'VNDB 作品名称、条目 ID 或网址'), metadataQuery, metadataSearch), metadataError, metadataStatus, metadataNormalized, metadataResults,
       h('p', { class: 'metadata-privacy' }, '只使用 VNDB 视觉小说条目的封面。检索仅发送作品关键词或条目 ID；游戏文件、本地路径和账户资料不会上传。'));
-    const body = h('div', { class: 'modal-body' }, error, recognition, h('div', { class: 'form-grid' }, field('游戏名称', title, { required: true }), field('原文名称', originalTitle), field('制作组', developer), field('游玩状态', status), pathField('启动程序', exe, 'game', '未填写时，首次启动会提示选择程序。'), pathField('游戏封面', cover, 'cover'), field('分类 · 可多选', categories, { full: true }), h('div', { class: 'form-field full-width' }, h('label', { class: 'check-label' }, favorite, icon('heart'), '加入我的收藏'))), h('h3', { class: 'form-section-label' }, '启动设置'), h('div', { class: 'form-grid' }, pathField('工作目录', workDir, 'folder'), field('启动参数', args, { full: true }), h('div', { class: 'form-field full-width' }, h('label', { class: 'check-label' }, locale, '使用 Locale Emulator 转区启动'), h('p', { class: 'field-help' }, '适用于需要日语区域设置的游戏。可在设置中指定 Locale Emulator。')), field('我的笔记', notes, { full: true })));
+    const completionField = h('div', { class: 'form-field full-width completion-field' }, h('label', { class: 'check-label', for: 'game-completed' }, completed, icon('check'), '已通关 · 添加通关标签'), h('p', { class: 'field-help' }, '保存后显示“已通关”标签，并收进侧栏的“已通关”游戏库。'));
+    const body = h('div', { class: 'modal-body' }, error, recognition, h('div', { class: 'form-grid' }, field('游戏名称', title, { required: true }), field('原文名称', originalTitle), field('制作组', developer), field('游玩状态', status), completionField, pathField('启动程序', exe, 'game', '未填写时，首次启动会提示选择程序。'), pathField('游戏封面', cover, 'cover'), field('分类 · 可多选', categories, { full: true }), h('div', { class: 'form-field full-width' }, h('label', { class: 'check-label' }, favorite, icon('heart'), '加入我的收藏'))), h('h3', { class: 'form-section-label' }, '启动设置'), h('div', { class: 'form-grid' }, pathField('工作目录', workDir, 'folder'), field('启动参数', args, { full: true }), h('div', { class: 'form-field full-width' }, h('label', { class: 'check-label' }, locale, '使用 Locale Emulator 转区启动'), h('p', { class: 'field-help' }, '适用于需要日语区域设置的游戏。可在设置中指定 Locale Emulator。')), field('我的笔记', notes, { full: true })));
     const save = h('button', { class: 'button primary', type: 'submit' }, icon('check'), original ? '保存修改' : '加入游戏库');
     form.append(dialogHeader(original ? '编辑游戏' : '添加本地游戏', original ? '整理这段故事的资料与启动方式。' : '选择你电脑上的游戏，确认资料后加入游戏库。', 'editor-title', dialog), body, h('div', { class: 'modal-footer' }, h('span', { class: 'form-footer-note' }, '游戏文件保留在原位置'), button('取消', () => dialog.close(), 'button subtle'), save));
     form.addEventListener('submit', async event => {
@@ -596,12 +607,29 @@
     });
   }
 
+  async function changeGameStatus(id, status, target) {
+    const epoch = accountEpoch;
+    await busy(target, async () => {
+      const next = await API.setGameStatus({ id, status });
+      if (epoch !== accountEpoch) return;
+      applyState(next);
+      if ($('#detail-dialog').open && detailGameId === id) openGameDetail(id);
+      toast(status === 'finished' ? '已添加通关标签，可在“已通关”中查看。' : `游玩状态已改为“${statuses[status]}”。`);
+    });
+  }
+
   function openGameDetail(id) {
     const game = state.games.find(item => item.id === id);
     if (!game) return;
     detailGameId = id;
     const dialog = $('#detail-dialog');
     const side = h('div', {}, h('div', { class: 'detail-cover' }, ...coverContents(game)), button('启动游戏', event => launch(game.id, event.currentTarget), 'button primary wide', 'play'), h('div', { class: 'detail-side-actions' }, button('游戏目录', event => busy(event.currentTarget, () => API.openGameFolder(game.id)), 'button subtle', 'folder'), button(game.favorite ? '已收藏' : '收藏', event => busy(event.currentTarget, async () => { applyState(await API.saveGame({ ...game, favorite: !game.favorite })); openGameDetail(game.id); }), 'button subtle', 'heart')));
+    const completion = button(game.status === 'finished' ? '取消通关标记' : '标记为已通关', event => changeGameStatus(id, game.status === 'finished' ? 'unplayed' : 'finished', event.currentTarget), 'button subtle wide detail-completed-toggle', 'check');
+    completion.id = 'detail-completed-toggle';
+    completion.setAttribute('aria-pressed', String(game.status === 'finished'));
+    const statusSelect = h('select', { id: 'detail-status-select', class: 'text-input', onchange: event => changeGameStatus(id, event.currentTarget.value, event.currentTarget) }, ...Object.entries(statuses).map(([value, label]) => h('option', { value }, label)));
+    statusSelect.value = game.status;
+    side.append(completion, field('游玩状态 · 修改即保存', statusSelect));
     const main = h('div', { class: 'detail-main' }, h('div', { class: 'eyebrow' }, 'YOUR STORY'), h('h2', { id: 'detail-title' }, game.title), game.originalTitle ? h('p', { class: 'original-title' }, game.originalTitle) : null, h('p', { class: 'detail-developer' }, icon('book'), game.developer || '未填写制作组'), h('div', { class: 'detail-tags' }, h('span', { class: 'tag' }, statuses[game.status] || statuses.unplayed), categoriesFor(game).map(category => h('span', { class: 'tag' }, category.name)), game.launchMode === 'locale' ? h('span', { class: 'tag' }, '转区启动') : null), h('div', { class: 'detail-metrics' }, h('div', { class: 'detail-metric' }, h('label', {}, '累计游玩'), h('strong', {}, duration(seconds(game)))), h('div', { class: 'detail-metric' }, h('label', {}, '上次游玩'), h('strong', {}, shortDate(game.lastPlayed)))), h('div', { class: 'detail-info' }, h('h3', {}, '我的笔记'), h('p', {}, game.notes || '还没有留下笔记。可以在编辑中记录你的游玩感受。')), h('div', { class: 'detail-info' }, h('h3', {}, '启动位置'), h('p', { class: 'detail-path' }, game.exePath || '尚未指定，启动时选择游戏程序。')));
     openDialog(dialog, [h('div', { class: 'modal-header detail-header' }, iconButton('close', '关闭游戏详情', () => dialog.close())), h('div', { class: 'detail-layout' }, side, main), h('div', { class: 'detail-bottom' }, h('span', {}, game.addedAt ? `收录于 ${shortDate(game.addedAt)}` : '收录在你的游戏库'), h('div', { class: 'topbar-actions' }, button('从库中移除', () => removeGame(game), 'button ghost', 'trash'), button('编辑游戏', () => openGameEditor(game.id), 'button subtle', 'edit')))]);
   }

@@ -126,6 +126,7 @@ function registerApi(){
     fs.writeFileSync(file,png);return {coverPath:file};
   });
   handle('saveGame',g=>store.saveGame(g));
+  handle('setGameStatus',request=>store.setGameStatus(request?.id,request?.status));
   handle('deleteGame',id=>{if(processes.has(id)||launching.has(id))throw new Error('请先关闭游戏，再从库中移除。');return store.deleteGame(id);});
   handle('saveCategory',c=>store.saveCategory(c));
   handle('deleteCategory',id=>store.deleteCategory(id));

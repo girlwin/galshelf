@@ -89,3 +89,6 @@
 .metadata-privacy{font-size:9px;line-height:1.8;color:#80658e;margin-top:14px}
 @media(max-width:1160px){.account-panel,.profile-panel{padding:23px}.account-grid{gap:17px}.account-nav{gap:8px;padding-left:8px;padding-right:8px}.account-nav-copy small{font-size:8px}}
 @media(max-width:850px){.account-grid{grid-template-columns:1fr}.metadata-results{grid-template-columns:1fr}.recognition-heading{flex-wrap:wrap}.recognition-heading>div{flex-basis:100%}}
+
+/* Completion actions remain visible without hovering a game cover. */
+.card-completed-toggle{width:100%;margin-top:10px;min-height:32px;font-size:11px;justify-content:center}.card-completed-toggle[aria-pressed="true"],.detail-completed-toggle[aria-pressed="true"]{color:#a9ddbb;border-color:#4a765d;background:#23352c}.completion-tag{display:inline-flex;align-items:center;gap:4px;color:#b2e5c3;background:#263c30}.completion-tag svg{width:11px;height:11px}.detail-completed-toggle{margin:12px 0 16px}.completion-field{padding:12px;border:1px solid #4a3a59;border-radius:8px;background:#25212e}

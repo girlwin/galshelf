@@ -1,7 +1,7 @@
 {
   "name": "galshelf",
   "productName": "galshelf",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "private": true,
   "description": "本地 Galgame 游戏库、分类与启动器",
   "main": "main.js",

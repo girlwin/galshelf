@@ -333,6 +333,33 @@ test('a stale running instance cannot overwrite a restored or more recent librar
   assert.equal(f.store('library').data.games[0].title,'刚恢复的游戏资料');
 });
 
+test('completion status persists independently of categories, cover, launch setup and play history', t => {
+  const f=fixture(t),store=f.store('library');
+  const image=path.join(f.root,'completion-cover.png');fs.writeFileSync(image,PNG);
+  const game=addGame(store,{title:'通关记录',exePath:f.exe('completed'),coverPath:image,categories:['grotesque','nukige'],notes:'保留笔记',favorite:true,args:['--windowed'],launchMode:'locale',localeGuid:LOCALE_GUID});
+  store.markLaunch(game.id);store.addPlayTime(game.id,123);
+  const before=store.state().games[0];
+  store.setGameStatus(game.id,'finished');
+  const completed=f.store('library').state().games[0];
+  assert.equal(completed.status,'finished');
+  for(const key of Object.keys(before))if(!['status','updatedAt'].includes(key))assert.deepEqual(completed[key],before[key],key);
+  store.markLaunch(game.id);assert.equal(f.store('library').findGame(game.id).status,'finished');
+  store.setGameStatus(game.id,'unplayed');assert.equal(f.store('library').findGame(game.id).status,'unplayed');
+  const saved=fs.readFileSync(store.file);
+  assert.throws(()=>store.setGameStatus(game.id,'completed'),/有效的游玩状态/);
+  assert.throws(()=>store.setGameStatus('missing','finished'),/未找到游戏/);
+  assert.ok(fs.readFileSync(store.file).equals(saved));
+});
+
+test('completion changes stay in the selected local library', t => {
+  const f=fixture(t),guest=f.store('guest'),profile=f.store('profile');
+  const a=addGame(guest,{title:'访客作品'}),b=addGame(profile,{title:'账户作品'});
+  profile.setGameStatus(b.id,'finished');
+  assert.equal(f.store('profile').findGame(b.id).status,'finished');
+  assert.equal(f.store('guest').findGame(a.id).status,'unplayed');
+  assert.throws(()=>guest.setGameStatus(b.id,'finished'),/未找到游戏/);
+});
+
 test('a running instance cannot silently recreate a library removed or relocated externally', t => {
   const f=fixture(t),store=f.store('library');
   addGame(store,{title:'保留在恢复备份中'});
