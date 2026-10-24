@@ -9,14 +9,14 @@ const {Store}=require('./lib/store');
 const {Accounts}=require('./lib/accounts');
 const {scanGameFolder}=require('./lib/discovery');
 const {Metadata}=require('./lib/metadata');
+const {dataPaths,prepareDataDirectory}=require('./lib/data-path');
 const {siteUrl,archiveToolUrl}=require('./lib/catalog');
 
 app.setName('galshelf');
-if(process.env.GALSHELF_DATA_DIR){
-  const dataDir=path.resolve(process.env.GALSHELF_DATA_DIR);
-  fs.mkdirSync(dataDir,{recursive:true});
-  app.setPath('userData',dataDir);
-}
+const legacyDataDir=app.getPath('userData');
+const storage=dataPaths({home:app.getPath('home'),override:process.env.GALSHELF_DATA_DIR});
+fs.mkdirSync(storage.cache,{recursive:true});
+app.setPath('userData',storage.cache);
 const smoke=process.argv.includes('--smoke-test');
 const processes=new Map();
 const launching=new Set();
@@ -153,7 +153,8 @@ function registerApi(){
 }
 if(ownsInstance)app.whenReady().then(async()=>{
   try {
-    accounts=new Accounts(app.getPath('userData'));
+    const persistentDir=prepareDataDirectory(storage.library,storage.migrate?legacyDataDir:null);
+    accounts=new Accounts(persistentDir);
     store=new Store(accounts.libraryDir());
     metadata=new Metadata({fetchImpl:net.fetch.bind(net)});
     session.defaultSession.setPermissionRequestHandler((_wc,_perm,callback)=>callback(false));

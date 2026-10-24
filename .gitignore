@@ -22,6 +22,8 @@ userdata/
 data/
 covers/
 backups/
+.galshelf/
+recovery-backups/
 
 # Local accounts, avatars and login state (never publish these)
 accounts.json

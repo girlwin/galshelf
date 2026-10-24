@@ -323,6 +323,25 @@ test('each successful write keeps the immediately preceding library revision as 
   assert.equal(f.store('library').state().games.length, 2);
 });
 
+test('a stale running instance cannot overwrite a restored or more recent library', t => {
+  const f=fixture(t),first=f.store('library'),stale=f.store('library');
+  addGame(first,{title:'刚恢复的游戏资料',exePath:f.exe('restored')});
+  const saved=fs.readFileSync(first.file),backup=fs.readFileSync(first.file+'.bak');
+  assert.throws(()=>addGame(stale,{title:'旧窗口的空库修改'}),/已被其他进程修改/);
+  assert.ok(fs.readFileSync(first.file).equals(saved));
+  assert.ok(fs.readFileSync(first.file+'.bak').equals(backup));
+  assert.equal(f.store('library').data.games[0].title,'刚恢复的游戏资料');
+});
+
+test('a running instance cannot silently recreate a library removed or relocated externally', t => {
+  const f=fixture(t),store=f.store('library');
+  addGame(store,{title:'保留在恢复备份中'});
+  fs.renameSync(store.file,store.file+'.recovered');
+  assert.throws(()=>store.saveSettings({}),/已被其他进程修改/);
+  assert.equal(fs.existsSync(store.file),false);
+  assert.equal(JSON.parse(fs.readFileSync(store.file+'.recovered','utf8')).games.length,1);
+});
+
 test('site search templates preserve Chinese, spaces and reserved URL characters as one search term', () => {
   const query = '星海 物语 & A/B? #中文';
   const expectedHosts = { vndb: 'vndb.org', bangumi: 'bgm.tv', gog: 'www.gog.com', itch: 'itch.io' };
