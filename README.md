@@ -1,0 +1,143 @@
+# galshelf
+
+Windows 本地 Galgame 启动器。用封面整理游戏库，按分类和游玩状态筛选，一键启动自己的游戏；另有独立的搜索网站和解压工具页面。
+
+当前版本：**1.2.1**。目前支持 **Windows x64**，界面语言为简体中文。项目名、程序名和发布包统一使用 `galshelf`。
+
+## 下载与使用
+
+在本仓库的 **Releases** 页面下载 `galshelf-版本号-win32-x64.zip`，完整解压后运行文件夹内的 `galshelf.exe`。免安装版需要保留整个文件夹，不能只复制 EXE。若 Releases 尚无文件，可按下方步骤从源码运行或构建。
+
+在没有既有 galshelf 数据的新电脑上，首次使用为空游戏库、无账户。发行包不带开发者的游戏、账户、头像、封面、收藏或本机路径。已有用户更新程序后仍可看到自己保存在本机的数据。
+
+点击「添加本地游戏」选择启动文件，或点击「从文件夹添加」选择一个本机游戏文件夹。文件夹识别会在所选目录及最多三层子目录中查找候选 EXE，并根据文件夹名建议游戏名称；请确认实际的启动程序。游戏文件始终保留在原位置，不会上传到服务器，也不会复制进发行包。
+
+从文件夹添加时会按建议名称检索 **VNDB 视觉小说库**，显示候选作品。这一来源参考了 Galgame Manager / Galisland 的默认封面搜索。检索使用作品名称、原名和别名进行匹配，也支持输入精确条目 ID（如 `v4`）或条目网址（如 `https://vndb.org/v4`）。文件夹名称中的无关标记会先清理，界面会显示与原输入不同的实际检索词。
+
+请对照候选作品的名称、原名、制作组、发售年份和条目 ID，再点击正确条目，将标题、制作组、简介和封面带入编辑器。程序不会自动选中首项；确认分类等资料后仍需手动保存。封面仅取 VNDB 视觉小说条目的 `image.url`，不使用游戏截图或一般图片搜索。名称匹配不保证准确，中文译名未被收录时，可尝试日文名、英文名或精确条目 ID；网络不可用或没有合适条目时，也能手动填写并选择本地封面。
+
+## 功能
+
+- **游戏库**：封面展示、名称搜索、收藏、游玩状态、排序、详情、备注及启动。
+- **分类管理**：内置剧情、纯爱、悬疑、恐怖、猎奇、拔作、治愈、催泪、日常、奇幻、科幻；支持新增、更名、颜色和删除。同一游戏可添加多个分类，删除分类不会删除游戏或磁盘文件。
+- **搜索网站**：在独立页面输入游戏名，跳转到 VNDB、Bangumi、GOG 或 itch.io 的搜索页；VLink 导航直接打开指定网址。
+- **解压工具**：独立入口提供 7-Zip、WinRAR 和 Windows 解压专家（UNISUnzip）的官方下载页面。
+- **本地添加与资料检索**：用户选择游戏文件夹，确认候选启动程序；可检索 VNDB 视觉小说条目、核对制作组和年份后应用标题/制作组/简介/封面，也可手动填写。不会扫描未选择的磁盘目录。
+- **本地账户**：本机注册和登录、修改显示 ID、选择或移除头像。每个账户拥有独立游戏库，也可直接使用访客游戏库。
+- **备份**：导出包含游戏资料和封面的 JSON，导入时合并并跳过已有记录。
+- **转区启动**：可配置本机已安装的 Locale Emulator，使用 `LEProc.exe` 启动游戏。
+
+## 外部网站与工具
+
+搜索网站和解压工具页面的链接由系统默认浏览器打开。程序不嵌入远程网页，不代为下载或安装解压工具。游戏编辑器另通过 VNDB 官方 API 检索视觉小说资料和下载所选条目的封面；网站页的 Bangumi 入口仍可单独使用。
+
+| 入口 | 用途 | 地址 |
+| --- | --- | --- |
+| VNDB | 视觉小说资料与标签检索 | [vndb.org](https://vndb.org/) |
+| Bangumi | 游戏条目、评分与讨论 | [bgm.tv](https://bgm.tv/game) |
+| GOG | 游戏商店搜索 | [gog.com](https://www.gog.com/en/games) |
+| itch.io | 独立游戏与视觉小说 | [itch.io](https://itch.io/games/tag-visual-novel) |
+| VLink 导航 | 网站导航；只打开入口，不附加搜索词 | [指定导航页](https://vlink.cc/0d000721) |
+| 7-Zip | Windows 压缩与解压工具 | [官方下载页](https://www.7-zip.org/download.html) |
+| WinRAR | Windows RAR / ZIP 工具 | [官方下载页](https://www.rarlab.com/download.htm) |
+| 解压专家（UNISUnzip） | Windows 版本，来自 UNIS Apps | [官方网站](https://www.unisapps.com/) · [Microsoft Store](https://apps.microsoft.com/detail/9p8l13p9gqc8) |
+
+这里的解压专家指 Windows 的 UNISUnzip，并非同名手机应用。第三方工具及网站由各自提供方维护，遵循各自的许可与使用条款；本项目仅提供入口，未打包这些工具。游戏本体、存档及商业游戏封面均不随本项目分发。
+
+## 本地账户与头像
+
+打开侧栏的「本地账户」，输入登录名、密码和显示 ID 即可注册。登录名为 3–32 位英文字母、数字、下划线或短横线，不区分大小写；密码为 8–128 个字符。注册后自动登录，新账户从空游戏库开始。登录后可修改显示 ID（1–32 个字符，可用中文）并选择本地图片作为头像；修改显示 ID 不改变登录名和账户身份。
+
+账户仅存在于当前电脑，无需邮箱，没有在线账户、云同步或在线找回密码。退出登录后回到访客游戏库，重新启动程序也会回到访客。已有本机游戏数据保留在访客库中，不会自动搬入新账户；需要迁移时，先在访客状态下导出资料备份，再登录目标账户导入。备份仅合并到当前游戏库，不会切换账户。
+
+密码使用随机盐和 scrypt 派生结果保存，不保存明文密码；连续登录失败五次后，当前进程会限制登录 30 秒。本地账户用于区分收藏与资料，游戏库和头像文件没有磁盘加密，不能阻止能访问同一 Windows 用户数据目录的人读取文件。请自行妥善保管密码和备份。
+
+## 数据与使用限制
+
+- 默认数据根目录为 `%APPDATA%\galshelf`。访客游戏库位于根目录，每个账户的游戏库位于 `profiles/<账户 UUID>/`；账户资料保存在 `accounts.json`，头像保存在 `avatars/`。设置中的打开目录入口指向当前游戏库。游戏库与程序目录分离，更新程序时保留数据根目录即可继续使用。
+- 保存游戏库和账户资料时，分别保留上一版本 `library.json.bak` 和 `accounts.json.bak`。主文件损坏时程序会报错，避免覆盖；先关闭程序并保留损坏文件，再将对应 `.bak` 复制为原文件名恢复。
+- 备份包含游戏资料和封面，不包含游戏本体、存档或转区工具。换电脑后需要重新指定游戏和工具路径。
+- 启动文件支持 `.exe`、`.lnk`、`.bat`、`.cmd`。启动参数每行填写一个；自定义参数与转区模式需要直接选择 EXE。
+- 自动计时只覆盖启动器运行期间可监测的直接游戏进程。转区工具、快捷方式和脚本启动不自动计时；把游戏交给另一进程的 EXE 启动器也无法准确统计。关闭启动器不会强制关闭游戏。
+- 作品检索向 `https://api.vndb.org/kana/vn` 发送名称关键词或条目 ID，不会发送本机游戏文件、路径、账户或头像。仅使用视觉小说条目的 `image.url` 作为封面，预览和下载限制在 `https://t.vndb.org/cv/`，不使用截图路径 `/sf/`。选中条目后才将封面保存到本地；API 响应与封面下载经过范围与大小限制。资料来源及接口说明见 [VNDB 官方 API](https://api.vndb.org/kana)。外部网站在浏览器中打开后，适用对应网站的规则。
+- 不再提供 Galgame Manager / Galisland 的识别或游戏库导入功能。资料备份导入支持 galshelf 导出的 JSON。
+- 当前未实现存档管理、Magpie 集成或云同步。
+
+## 分享时不包含个人数据
+
+请只分享本项目的**源码 ZIP**或 `release/galshelf-版本号-win32-x64.zip` **完整发行包**。不要分享 `%APPDATA%\galshelf`、个人 JSON 备份、`accounts.json`、`profiles/`、`avatars/` 或日常游戏目录。个人备份包含游戏名称、封面和本机路径，不适合当作公开发布文件。
+
+构建使用 `lib/distribution.js` 的精确程序文件清单，在独立临时目录中暂存，并审计文件是否与清单一致；不会递归打包整个项目目录或读取个人数据目录。源码仓库另以 `.gitignore` 排除账户、头像、游戏库、备份、依赖和构建产物。发布前仍应检查待提交文件，确保没有把私人内容写入源码或文档。新用户下载程序后需自行从本机添加游戏。
+
+## 从源码运行
+
+需要 Windows x64、[Node.js 24](https://nodejs.org/) 和 npm。从 GitHub 页面复制本仓库的克隆地址，克隆后在项目根目录执行：
+
+```powershell
+npm ci
+npm start
+```
+
+也可以使用 GitHub 的 **Code → Download ZIP** 获取源码，解压后在项目根目录执行相同命令。源码不含 `node_modules` 或预装的 Electron；首次安装依赖需要联网。
+
+开发时如需隔离数据，可在当前 PowerShell 会话中指定一个本机测试目录：
+
+```powershell
+$env:GALSHELF_DATA_DIR = Join-Path $env:TEMP 'galshelf-dev'
+npm start
+```
+
+## 检查与构建
+
+```powershell
+npm run check
+npm test
+npm run test:smoke
+npm run release
+```
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check` | JavaScript 语法检查 |
+| `npm test` | 游戏库、本地账户、文件夹识别、资料检索、发布文件及分类和链接等回归测试 |
+| `npm run test:smoke` | Windows 上的 Electron 启动与交互冒烟测试；自动编译 `test/TestGame.cs`，使用隔离测试数据 |
+| `npm run build` | 生成 `release/galshelf-win32-x64/`，内含运行所需的完整文件 |
+| `npm run release` | 构建并生成 `release/galshelf-1.2.1-win32-x64.zip` 和 `release/SHA256SUMS.txt`；文件名随版本变化 |
+
+只需生成运行目录时，可使用 `npm run build` 代替 `npm run release`。构建不会覆盖已存在的产物；再次构建前，请先把 `release/galshelf-win32-x64/` 和同版本 ZIP 移出 `release/`。
+
+校验下载内容时，可用 PowerShell 的 `Get-FileHash -Algorithm SHA256 <压缩包路径>`，将结果与同一版本的 `SHA256SUMS.txt` 对照。
+
+## 上传 GitHub 与发布
+
+把本项目目录作为仓库根目录，提交源码、`package-lock.json`、文档及 `.github` 工作流。提交前运行 `git status --short` 检查文件列表；请不要把个人备份、账户数据、头像或游戏加入仓库。使用本地源码 ZIP 时，可解压后创建自己的 GitHub 仓库再上传源码。
+
+普通 push 和 pull request 会在 Windows runner 上运行检查、单元测试和冒烟测试。创建 GitHub 仓库并推送代码后，可按以下方式准备发行包：
+
+1. 更新 `package.json`、`package-lock.json` 与 `CHANGELOG.md` 中的版本。
+2. 创建并推送对应标签，例如 `v1.2.1`；也可在 **Actions → Release → Run workflow** 填写已存在的版本标签。
+3. Release 工作流检查标签与版本一致，构建完整压缩包及校验文件，然后创建或更新该版本的 **草稿 Release**。
+4. 在 GitHub Releases 中检查草稿附件与说明，再手动发布。其他人即可下载，无需安装 Node.js。
+
+发布工作流只在发布任务中取得仓库内容写入权限；构建任务使用只读权限。重跑可更新同标签的草稿附件，已发布 Release 不会被该工作流覆盖。
+
+随附的是可上传的本地项目与工作流配置。本地检查通过不代表 GitHub Actions 已运行；首次上传后请在仓库的 Actions 页面确认云端结果，再发布草稿。
+
+## 项目结构
+
+```text
+assets/             程序图标
+lib/                游戏库、账户、文件夹识别、VNDB 检索、发布清单与外部链接
+src/                页面、样式与渲染进程
+test/               回归测试及 Windows 冒烟测试
+.github/workflows/  CI 与草稿发行包工作流
+main.js             Electron 主进程与本机启动逻辑
+preload.js          受限的页面桥接接口
+build.js            Windows 构建入口
+```
+
+## 许可与贡献
+
+项目采用 [MIT License](LICENSE)。贡献方式见 [CONTRIBUTING.md](CONTRIBUTING.md)，版本变化见 [CHANGELOG.md](CHANGELOG.md)。
+
+galshelf 参考 Galgame Manager / Galisland 的本地游戏库使用方式独立实现，不包含原程序代码，不代表该项目或上述第三方网站。Electron 和其他依赖保留各自许可证；分发时请保留构建目录内的第三方许可文件。

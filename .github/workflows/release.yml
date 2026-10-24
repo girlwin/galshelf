@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build, for example v1.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 30
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - name: Check out the version tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+      - name: Verify tag and package version
+        id: version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
+            throw 'Use an existing version tag such as v1.1.0.'
+          }
+          $version = (Get-Content -Raw package.json | ConvertFrom-Json).version
+          if ($env:RELEASE_TAG -ne "v$version") {
+            throw 'The tag must match package.json version.'
+          }
+          $tagCommit = git rev-parse --verify "refs/tags/$env:RELEASE_TAG^{commit}"
+          if ($LASTEXITCODE -ne 0) { throw 'The requested tag does not exist.' }
+          $headCommit = git rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $tagCommit -ne $headCommit) {
+            throw 'The checkout does not match the requested tag.'
+          }
+          "tag=$env:RELEASE_TAG" >> $env:GITHUB_OUTPUT
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          architecture: x64
+          package-manager-cache: false
+      - name: Install dependencies
+        run: npm ci
+      - name: Check JavaScript syntax
+        run: npm run check
+      - name: Run regression tests
+        run: npm test
+      - name: Run Electron smoke test
+        run: npm run test:smoke
+      - name: Build ZIP and checksum
+        run: npm run release
+      - name: Save release assets
+        uses: actions/upload-artifact@v6
+        with:
+          name: galshelf-release
+          path: |
+            release/galshelf-*-win32-x64.zip
+            release/SHA256SUMS.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  publish:
+    name: Prepare draft Release
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ needs.build.outputs.tag }}
+    steps:
+      - name: Download verified build assets
+        uses: actions/download-artifact@v7
+        with:
+          name: galshelf-release
+          path: release
+      - name: Create or update draft
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = $env:RELEASE_TAG.Substring(1)
+          $archive = Join-Path $PWD "release/galshelf-$version-win32-x64.zip"
+          $checksums = Join-Path $PWD 'release/SHA256SUMS.txt'
+          if (!(Test-Path -LiteralPath $archive -PathType Leaf) -or !(Test-Path -LiteralPath $checksums -PathType Leaf)) {
+            throw 'Expected release assets are missing.'
+          }
+          $assets = @($archive, $checksums)
+          $existing = gh release view $env:RELEASE_TAG --json isDraft 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if (!(($existing | ConvertFrom-Json).isDraft)) {
+              throw 'This version is already published. Create a new version instead of replacing it.'
+            }
+            gh release upload $env:RELEASE_TAG @assets --clobber
+          } else {
+            gh release create $env:RELEASE_TAG @assets --draft --verify-tag --generate-notes --title "galshelf $env:RELEASE_TAG"
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release preparation failed.' }

@@ -1,0 +1,55 @@
+# Dependencies and generated packages
+node_modules/
+release/
+dist/
+out/
+coverage/
+*.log
+*.zip
+*.7z
+*.rar
+
+# Local configuration and private library data
+.env
+.env.*
+!.env.example
+library.json
+library.json.bak
+library.json.tmp
+galshelf-*.json
+userData/
+userdata/
+data/
+covers/
+backups/
+
+# Local accounts, avatars and login state (never publish these)
+accounts.json
+accounts.json.*
+account.json
+profiles/
+avatars/
+sessions/
+session.json
+session.json.*
+credentials.json
+credentials.json.*
+auth.json
+auth.json.*
+
+# Generated smoke-test executable and temporary data
+test/TestGame.exe
+test/TestGame.pdb
+.smoke-data/
+.test-data/
+tmp/
+temp/
+
+# Editor / operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.tmp
+*.bak

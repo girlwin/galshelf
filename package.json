@@ -1,0 +1,22 @@
+{
+  "name": "galshelf",
+  "productName": "galshelf",
+  "version": "1.2.1",
+  "private": true,
+  "description": "本地 Galgame 游戏库、分类与启动器",
+  "main": "main.js",
+  "license": "MIT",
+  "engines": {"node": ">=24"},
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "check": "node scripts/check.js",
+    "test:smoke": "node scripts/smoke.js",
+    "build": "node build.js",
+    "release": "node scripts/release.js"
+  },
+  "devDependencies": {
+    "electron": "42.11.18",
+    "@electron/packager": "19.1.1"
+  }
+}

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' file: data: https://t.vndb.org; object-src 'none'; base-uri 'none'; connect-src 'none'">
+  <title>galshelf</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="renderer.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="brand"><div class="brand-mark">✦</div><div><strong>galshelf</strong><small>故事，在这里继续</small></div></div>
+      <div id="navigation"></div>
+      <div id="account-navigation"></div>
+      <div class="sidebar-bottom"><span class="local-dot"></span><span>你的本地游戏收藏</span><button class="icon-button" id="settings-button" title="设置与备份" aria-label="设置与备份"></button></div>
+    </aside>
+    <main class="main-shell">
+      <header class="topbar"><div class="breadcrumb"><span>我的空间</span><span class="breadcrumb-slash">/</span><strong id="page-label">游戏库</strong></div><div class="topbar-actions"><button class="button subtle" id="folder-add-button">从文件夹添加</button><button class="button primary" id="add-game-button">＋ 添加本地游戏</button></div></header>
+      <div id="page-content" class="page-content" aria-busy="true"><div class="loading-state"><span class="spinner"></span><p>正在整理你的故事…</p></div></div>
+    </main>
+  </div>
+  <dialog id="editor-dialog" class="modal editor-modal" aria-labelledby="editor-title"></dialog>
+  <dialog id="detail-dialog" class="modal detail-modal" aria-labelledby="detail-title"></dialog>
+  <dialog id="category-dialog" class="modal category-modal" aria-labelledby="category-dialog-title"></dialog>
+  <dialog id="settings-dialog" class="modal settings-modal" aria-labelledby="settings-title"></dialog>
+  <dialog id="confirm-dialog" class="modal confirm-modal" aria-labelledby="confirm-title"></dialog>
+  <div id="toast-region" class="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>
