@@ -17,7 +17,12 @@ async function build(out=path.join(__dirname,'release')){
     execFileSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',path.join(__dirname,'scripts','build-capture.ps1')],{stdio:'inherit',windowsHide:true});
     stageRuntime(__dirname,staging,manifest);
     const result=await packager({dir:staging,out,name:'galshelf',platform:'win32',arch:'x64',electronVersion:require('electron/package.json').version,asar:{unpack:'**/*.exe'},prune:false,icon:path.join(staging,'assets','icon.ico'),win32metadata:{CompanyName:'galshelf contributors',FileDescription:'galshelf',ProductName:'galshelf'},overwrite:false});
-    for(const folder of result)for(const file of ['README.md','LICENSE','LICENSE-GALSHELF-MIT.txt','LICENSE-MEGULIT-GPL-3.0.txt','THIRD-PARTY-MEGULIT.txt'])fs.copyFileSync(path.join(staging,file),path.join(folder,file));
+    const electronLicense=path.join(path.dirname(require.resolve('electron/package.json')),'LICENSE');
+    for(const folder of result){
+      // The project's LICENSE must not replace the runtime's copyright notice.
+      fs.copyFileSync(electronLicense,path.join(folder,'LICENSE.electron.txt'));
+      for(const file of ['README.md','LICENSE','LICENSE-GALSHELF-MIT.txt','LICENSE-MEGULIT-GPL-3.0.txt','THIRD-PARTY-MEGULIT.txt'])fs.copyFileSync(path.join(staging,file),path.join(folder,file));
+    }
     return result[0];
   }finally{
     // Clean only the new temporary directory after checking its resolved location.
