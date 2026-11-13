@@ -27,6 +27,8 @@ recovery-backups/
 
 # Local accounts, avatars and login state (never publish these)
 accounts.json
+study.json
+study.json.*
 accounts.json.*
 account.json
 profiles/
@@ -42,6 +44,8 @@ auth.json.*
 # Generated smoke-test executable and temporary data
 test/TestGame.exe
 test/TestGame.pdb
+test/CaptureFixture*.exe
+test/CaptureFixture*.pdb
 .smoke-data/
 .test-data/
 tmp/

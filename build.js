@@ -3,6 +3,7 @@ const {packager}=require('@electron/packager');
 const path=require('node:path');
 const fs=require('node:fs');
 const os=require('node:os');
+const {execFileSync}=require('node:child_process');
 const manifest=require('./package.json');
 const {stageRuntime}=require('./lib/distribution');
 async function build(out=path.join(__dirname,'release')){
@@ -13,9 +14,10 @@ async function build(out=path.join(__dirname,'release')){
   if(fs.existsSync(destination))throw new Error('Build folder already exists: '+destination+'. Move the previous build before rebuilding.');
   const staging=fs.mkdtempSync(path.join(os.tmpdir(),'galshelf-build-'));
   try{
+    execFileSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',path.join(__dirname,'scripts','build-capture.ps1')],{stdio:'inherit',windowsHide:true});
     stageRuntime(__dirname,staging,manifest);
-    const result=await packager({dir:staging,out,name:'galshelf',platform:'win32',arch:'x64',electronVersion:require('electron/package.json').version,asar:true,prune:false,icon:path.join(staging,'assets','icon.ico'),win32metadata:{CompanyName:'galshelf contributors',FileDescription:'galshelf',ProductName:'galshelf'},overwrite:false});
-    for(const folder of result)for(const file of ['README.md','LICENSE'])fs.copyFileSync(path.join(staging,file),path.join(folder,file));
+    const result=await packager({dir:staging,out,name:'galshelf',platform:'win32',arch:'x64',electronVersion:require('electron/package.json').version,asar:{unpack:'**/*.exe'},prune:false,icon:path.join(staging,'assets','icon.ico'),win32metadata:{CompanyName:'galshelf contributors',FileDescription:'galshelf',ProductName:'galshelf'},overwrite:false});
+    for(const folder of result)for(const file of ['README.md','LICENSE','LICENSE-GALSHELF-MIT.txt','LICENSE-MEGULIT-GPL-3.0.txt','THIRD-PARTY-MEGULIT.txt'])fs.copyFileSync(path.join(staging,file),path.join(folder,file));
     return result[0];
   }finally{
     // Clean only the new temporary directory after checking its resolved location.

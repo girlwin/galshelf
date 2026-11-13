@@ -2,7 +2,18 @@
 
 Windows 本地 Galgame 启动器。用封面整理游戏库，按分类和游玩状态筛选，一键启动自己的游戏；另有独立的搜索网站和解压工具页面。
 
-当前版本：**1.2.3**。目前支持 **Windows x64**，界面语言为简体中文。项目名、程序名和发布包统一使用 `galshelf`。
+当前版本：**1.3.0**。目前支持 **Windows x64**，界面语言为简体中文。项目名、程序名和发布包统一使用 `galshelf`。
+
+## v1.3.0 更新重点：边玩 Galgame，边学日语
+
+- **游戏台词自动抓取**：选择库内游戏并开始抓取，游戏启动后自动连接，将实时台词显示在「日语学习」页。
+- **文本流选择与句子回看**：预览并切换台词流，固定当前句，或从本次记录中选择例句。
+- **本地生词本**：选中文字填入词语栏，填写读音和释义后保存；支持手动读音注音及 Weblio 查询。
+- **连接与数据隔离**：游戏退出后断开，重开后等待重连；切换账户或退出启动器时清理抓取连接和本次台词。
+
+[下载 v1.3.0](https://github.com/girlwin/galshelf/releases/tag/v1.3.0) · [完整更新说明](https://github.com/girlwin/galshelf/blob/v1.3.0/docs/releases/v1.3.0.md)
+
+首次使用需要选择本机 LunaHook 组件目录，详见下方「从游戏抓取日文」。目前不含自动分词、自动释义或自动翻译；不同游戏引擎可能存在兼容性差异。
 
 ## 下载与使用
 
@@ -27,6 +38,19 @@ Windows 本地 Galgame 启动器。用封面整理游戏库，按分类和游玩
 - **本地账户**：本机注册和登录、修改显示 ID、选择或移除头像。每个账户拥有独立游戏库，也可直接使用访客游戏库。
 - **备份**：导出包含游戏资料和封面的 JSON，导入时合并并跳过已有记录。
 - **转区启动**：可配置本机已安装的 Locale Emulator，使用 `LEProc.exe` 启动游戏。
+- **日语学习**：自动读取所选游戏 EXE 的台词、预览并切换文本流、固定当前句或从本次记录回看；选中文字后可查词、手动注音和保存到当前账户的生词本。
+
+## 从游戏抓取日文
+
+1. 先把游戏添加到游戏库，并直接指定实际运行的游戏 EXE。快捷方式、脚本或只负责打开另一个 EXE 的启动程序不能作为抓取目标。
+2. 打开「日语学习」。首次点击「获取抓取组件」，从 [LunaTranslator 官方发布页](https://github.com/HIllya51/LunaTranslator/releases) 获取 Windows x64 版；解压后点击「选择抓取组件」，指定其中 `files/LunaHook` 目录。目录内须有 `LunaHost64.dll`、`LunaHook32.dll`、`LunaHook64.dll`，程序会验证接口后保存本机设置。这些 DLL 不随 galshelf 分发。
+3. 选择库内游戏，点击「开始抓取」，再点击「启动所选游戏」或自行启动游戏。也可先启动再连接；多个同款游戏窗口需要明确选择进程。
+4. 推进游戏对话，台词会自动出现在页面和学习区。若显示菜单或角色名，切换「文本流」并查看预览。没有文本流时先推进几句；仍无文本说明该游戏引擎或组件版本可能不兼容。
+5. 在台词中选中词语，点击「选中文字 → 词语」，填写读音和释义后保存生词。关闭跟随后可固定句子，抓取刷新不会覆盖正在填写的词语、读音或释义。注音仍由手动读音生成，目前没有自动分词或离线词义库。
+
+抓取连接绑定实际 EXE 路径、进程编号、窗口及创建时间。游戏结束后自动断开，仍在等待模式时再次启动同一游戏可重连；点击停止会解除等待，不会关闭游戏。切换本地账户和退出 galshelf 时停止连接并清空本次台词。不会自动恢复上次抓取，也不监听全局剪贴板。
+
+最近 100 条台词只在内存中保留，未保存的内容退出后消失；只有手动保存的词条、读音、释义和例句写入当前账户目录的 `study.json`。词典查询会把所选词语交给外部 Weblio 网站。完整游戏文本、游戏文件和账户资料不上传。抓取依赖第三方 LunaHook 和对应游戏引擎，不能保证所有 Galgame；游戏与 galshelf 的运行权限也需要一致。原生集成测试使用独立的 32 位、64 位日文测试窗口，不代表全部商业游戏都已验证。
 
 ## 外部网站与工具
 
@@ -79,6 +103,7 @@ Windows 本地 Galgame 启动器。用封面整理游戏库，按分类和游玩
 
 ```powershell
 npm ci
+npm run build:capture
 npm start
 ```
 
@@ -105,6 +130,8 @@ npm run release
 | `npm run check` | JavaScript 语法检查 |
 | `npm test` | 游戏库、本地账户、文件夹识别、资料检索、发布文件及分类和链接等回归测试 |
 | `npm run test:smoke` | Windows 上的 Electron 启动与交互冒烟测试；自动编译 `test/TestGame.cs`，使用隔离测试数据 |
+| `npm run test:capture` | 原生 32/64 位实时抓取、文本流选择、停止与重连、账户隔离；先将 `GALSHELF_HOOK_ROOT` 指向已解压的 LunaHook 目录，不下载或包含该组件 |
+| `npm run build:capture` | 使用 Windows .NET Framework 自带的 C# 编译器重建桥接程序及 32/64 位注入器 |
 | `npm run build` | 生成 `release/galshelf-win32-x64/`，内含运行所需的完整文件 |
 | `npm run release` | 构建并生成 `release/galshelf-1.2.1-win32-x64.zip` 和 `release/SHA256SUMS.txt`；文件名随版本变化 |
 
@@ -130,7 +157,7 @@ npm run release
 ## 项目结构
 
 ```text
-assets/             程序图标
+assets/             程序图标与本地抓取桥接源码、可重建的 EXE
 lib/                游戏库、账户、文件夹识别、VNDB 检索、发布清单与外部链接
 src/                页面、样式与渲染进程
 test/               回归测试及 Windows 冒烟测试
@@ -142,6 +169,8 @@ build.js            Windows 构建入口
 
 ## 许可与贡献
 
-项目采用 [MIT License](LICENSE)。贡献方式见 [CONTRIBUTING.md](CONTRIBUTING.md)，版本变化见 [CHANGELOG.md](CHANGELOG.md)。
+从 1.3.0 起，组合发行采用 [GPL-3.0-or-later](LICENSE)。原 galshelf 代码的 MIT 署名保留在 [LICENSE-GALSHELF-MIT.txt](LICENSE-GALSHELF-MIT.txt)。贡献方式见 [CONTRIBUTING.md](CONTRIBUTING.md)，版本变化见 [CHANGELOG.md](CHANGELOG.md)。
 
 galshelf 参考 Galgame Manager / Galisland 的本地游戏库使用方式独立实现，不包含原程序代码，不代表该项目或上述第三方网站。Electron 和其他依赖保留各自许可证；分发时请保留构建目录内的第三方许可文件。
+
+日语学习功能明确复用了 MeguLit 1.3.5 的注音、进程校验与注入器源码，并修改其抓取桥接代码；具体来源和改动见 [THIRD-PARTY-MEGULIT.txt](THIRD-PARTY-MEGULIT.txt)。本项目不代表 MeguLit 或 LunaTranslator。对应 JavaScript、C# 源码和本机桥接构建脚本随程序提供，公开分发时应一并提供同版本完整项目源码与许可证。

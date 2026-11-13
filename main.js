@@ -5,6 +5,8 @@ const path=require('node:path');
 const {spawn}=require('node:child_process');
 const {fileURLToPath}=require('node:url');
 const crypto=require('node:crypto');
+const study=require('./lib/study');
+const {CaptureController}=require('./lib/capture');
 const {Store}=require('./lib/store');
 const {Accounts}=require('./lib/accounts');
 const {scanGameFolder}=require('./lib/discovery');
@@ -17,10 +19,11 @@ const legacyDataDir=app.getPath('userData');
 const storage=dataPaths({home:app.getPath('home'),override:process.env.GALSHELF_DATA_DIR});
 fs.mkdirSync(storage.cache,{recursive:true});
 app.setPath('userData',storage.cache);
-const smoke=process.argv.includes('--smoke-test');
+const captureSmoke=process.argv.includes('--capture-smoke-test');
+const smoke=process.argv.includes('--smoke-test')||captureSmoke;
 const processes=new Map();
 const launching=new Set();
-let mainWindow,store,accounts,metadata;
+let mainWindow,store,accounts,metadata,capture;
 let activeOperations=0,switchingAccount=false;
 const accountSwitches=new Set(['registerAccount','loginAccount','logoutAccount']);
 const mainHtml=path.join(__dirname,'src','index.html');
@@ -37,6 +40,7 @@ function handle(name,fn){ipcMain.handle('gal:'+name,async(event,...args)=>{
   try{
     if(switchingAccount)throw new Error('正在切换账户，请稍后重试。');
     if(accountSwitches.has(name)){
+      reapProcesses();
       if(activeOperations||processes.size||launching.size)throw new Error('请先关闭正在运行的游戏或等待当前操作完成，再切换账户。');
       switchingAccount=true;
     }else activeOperations++;
@@ -50,7 +54,7 @@ function handle(name,fn){ipcMain.handle('gal:'+name,async(event,...args)=>{
 });}
 async function switchAccount(action){
   const previous=accounts.state().user?.id||null;
-  try{await action();const next=new Store(accounts.libraryDir());store=next;metadata.matches.clear();return state();}
+  try{await capture.stop({clear:true});await action();const next=new Store(accounts.libraryDir());store=next;metadata.matches.clear();return state();}
   catch(error){accounts.restoreSession(previous);throw error;}
 }
 function imagePng(bytes,maxSide){
@@ -65,7 +69,17 @@ function assertFile(p,label){if(!p||!fs.existsSync(p)||!fs.statSync(p).isFile())
 async function chooseGame(defaultPath){const r=await dialog.showOpenDialog(mainWindow,{title:'选择游戏启动文件',defaultPath,properties:['openFile'],filters:[{name:'游戏启动文件',extensions:['exe','lnk','bat','cmd']}]});return r.canceled?null:r.filePaths[0];}
 function checkpoint(id){const active=processes.get(id);if(!active)return;const now=Date.now();store.addPlayTime(id,(now-active.checkpoint)/1000);active.checkpoint=now;}
 function completeProcess(id){checkpoint(id);processes.delete(id);}
+function reapProcesses(){
+  // Windows may delay the child exit event after a hooked game terminates.
+  // Signal 0 only queries existence; EPERM and all other errors keep it tracked.
+  for(const [id,active] of processes){
+    let exited=active.child.exitCode!==null||active.child.signalCode!==null;
+    if(!exited)try{process.kill(active.child.pid,0);}catch(error){exited=error.code==='ESRCH';}
+    if(exited)completeProcess(id);
+  }
+}
 async function launchGame(id){
+  reapProcesses();
   if(launching.has(id)||processes.has(id))throw new Error('这个游戏正在启动或运行。');
   launching.add(id);
   try{return await launchInner(id);}finally{launching.delete(id);}
@@ -127,7 +141,7 @@ function registerApi(){
   });
   handle('saveGame',g=>store.saveGame(g));
   handle('setGameStatus',request=>store.setGameStatus(request?.id,request?.status));
-  handle('deleteGame',id=>{if(processes.has(id)||launching.has(id))throw new Error('请先关闭游戏，再从库中移除。');return store.deleteGame(id);});
+  handle('deleteGame',async id=>{if(processes.has(id)||launching.has(id))throw new Error('请先关闭游戏，再从库中移除。');if(capture.state.gameId===id)await capture.stop({clear:true});return store.deleteGame(id);});
   handle('saveCategory',c=>store.saveCategory(c));
   handle('deleteCategory',id=>store.deleteCategory(id));
   handle('saveSettings',p=>store.saveSettings(p));
@@ -151,6 +165,23 @@ function registerApi(){
     await shell.openExternal(siteUrl(request?.id,request?.query));
   });
   handle('openArchiveTool',async id=>{await shell.openExternal(archiveToolUrl(id));});
+  handle('openDictionary',async query=>{if(typeof query!=='string'||!query.trim()||query.length>100)throw new Error('请输入要查询的词语（最多 100 字）。');await shell.openExternal('https://www.weblio.jp/content/'+encodeURIComponent(query.trim()));});
+  handle('getStudyWords',()=>study.read(store.dir));
+  handle('saveStudyWord',entry=>study.save(store.dir,entry));
+  handle('getCaptureState',()=>capture.snapshot(store.data.settings.captureRuntimePath));
+  handle('getCaptureTargets',()=>capture.targets(store.data.games));
+  handle('startCapture',request=>capture.start(store.findGame(request?.gameId),store.data.settings.captureRuntimePath,request?.pid));
+  handle('stopCapture',async()=>{await capture.stop();return capture.snapshot(store.data.settings.captureRuntimePath);});
+  handle('selectCaptureStream',id=>capture.selectStream(id));
+  handle('chooseCaptureRuntime',async()=>{
+    const result=await dialog.showOpenDialog(mainWindow,{title:'选择 LunaHook 组件目录（包含 LunaHost64.dll）',properties:['openDirectory']});
+    if(result.canceled)return null;
+    const root=await capture.probe(result.filePaths[0]);
+    await capture.stop({clear:true});
+    store.saveSettings({captureRuntimePath:root});
+    return capture.snapshot(root);
+  });
+  handle('openCaptureHelp',()=>shell.openExternal('https://github.com/HIllya51/LunaTranslator/releases'));
 }
 if(ownsInstance)app.whenReady().then(async()=>{
   try {
@@ -158,6 +189,7 @@ if(ownsInstance)app.whenReady().then(async()=>{
     accounts=new Accounts(persistentDir);
     store=new Store(accounts.libraryDir());
     metadata=new Metadata({fetchImpl:net.fetch.bind(net)});
+    capture=new CaptureController();
     session.defaultSession.setPermissionRequestHandler((_wc,_perm,callback)=>callback(false));
     session.defaultSession.setPermissionCheckHandler(()=>false);
     registerApi();
@@ -167,8 +199,18 @@ if(ownsInstance)app.whenReady().then(async()=>{
     mainWindow.once('ready-to-show',()=>{if(!smoke)mainWindow.show();});
     await mainWindow.loadFile(mainHtml);
     setInterval(()=>{for(const id of processes.keys())checkpoint(id);},60000).unref();
-    if(smoke){await require('./test/smoke-runner')({app,window:mainWindow,store,launchGame,accounts,metadata});}
+    const processWatcher=setInterval(()=>{try{reapProcesses();}catch(error){clearInterval(processWatcher);console.error('Game tracking stopped: '+error.message);}},1500);
+    processWatcher.unref();
+    if(smoke){await require(captureSmoke?'./test/capture-smoke-runner':'./test/smoke-runner')({app,window:mainWindow,store,launchGame,accounts,metadata,capture,processes});}
   } catch(e){if(smoke){console.error(e.stack);app.exit(1);}else {dialog.showErrorBox('galshelf 启动失败',e.message);app.quit();}}
 });
-app.on('before-quit',()=>{if(store)for(const id of processes.keys())checkpoint(id);});
+let quitting=false;
+app.on('before-quit',event=>{
+  if(quitting)return;
+  if(store)for(const id of processes.keys())checkpoint(id);
+  if(capture&&(capture.child||capture.armed)){
+    event.preventDefault();quitting=true;
+    capture.stop({clear:true}).finally(()=>app.quit());
+  }
+});
 app.on('window-all-closed',()=>app.quit());

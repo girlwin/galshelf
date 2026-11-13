@@ -45,6 +45,7 @@
   let detailGameId = null;
   let accountBusy = false;
   let accountEpoch = 0;
+  let studyCleanup = null;
 
   function h(tag, attrs = {}, ...children) {
     const el = document.createElement(tag);
@@ -156,6 +157,7 @@
       navigationItem('分类管理', 'tag', ui.page === 'categories', () => navigate('categories')),
       navigationItem('搜索网站', 'globe', ui.page === 'sites', () => navigate('sites')),
       navigationItem('解压工具', 'archive', ui.page === 'archive-tools', () => navigate('archive-tools')),
+      navigationItem('日语学习', 'book', ui.page === 'study', () => navigate('study')),
     );
     const third = h('div', { class: 'nav-group' }, h('div', { class: 'nav-label' }, h('span', {}, '游戏分类'), iconButton('plus', '新建分类', () => openCategoryEditor())));
     for (const category of state.categories) {
@@ -168,8 +170,9 @@
   }
 
   function render() {
+    studyCleanup?.(); studyCleanup = null;
     renderNavigation();
-    $('#page-label').textContent = { library: '游戏库', categories: '分类管理', sites: '搜索网站', 'archive-tools': '解压工具', account: '本地账户' }[ui.page];
+    $('#page-label').textContent = { library: '游戏库', categories: '分类管理', sites: '搜索网站', 'archive-tools': '解压工具', account: '本地账户', study: '日语学习' }[ui.page];
     const content = $('#page-content');
     content.setAttribute('aria-busy', 'false');
     content.replaceChildren();
@@ -177,9 +180,25 @@
     else if (ui.page === 'sites') renderSites(content);
     else if (ui.page === 'archive-tools') renderArchiveTools(content);
     else if (ui.page === 'account') renderAccount(content);
+    else if (ui.page === 'study') renderStudy(content);
     else renderLibrary(content);
   }
 
+  function renderStudy(root) {
+    root.append(heading('日语学习', '边读故事边学日语，让游戏里的每一句话都成为学习素材。', 'JAPANESE READING'));
+    const sentence=h('textarea',{rows:'5',placeholder:'在此粘贴日文句子','aria-label':'日文句子'});
+    const word=h('input',{placeholder:'词语，例如 食べる','aria-label':'词语'});
+    const reading=h('input',{placeholder:'读音，例如 たべる','aria-label':'读音'});
+    const meaning=h('input',{placeholder:'释义（可选）','aria-label':'释义'});
+    const list=h('div',{class:'study-list'});const epoch=accountEpoch;
+    const display=items=>{if(epoch!==accountEpoch)return;list.replaceChildren(h('h2',{},`生词本 · ${items.length} 条`),...items.map(item=>h('div',{class:'study-word'},h('strong',{},item.word),h('span',{},` ${item.reading||''} ${item.meaning||''}`),item.sentence?h('p',{},item.sentence):null)));};
+    API.getStudyWords().then(display).catch(error=>toast(errorText(error),true));
+    const output=h('div',{class:'study-output','aria-live':'polite'});
+    const show=()=>{const text=sentence.value;const token=word.value.trim();const spans=token&&reading.value.trim()?window.TomoyoFurigana.annotations(text,[{surface:token,reading:reading.value.trim()}]):[];const chars=[...text];output.replaceChildren();let pos=0;for(const part of spans){output.append(document.createTextNode(chars.slice(pos,part.start).join('')));output.append(h('ruby',{},chars.slice(part.start,part.end).join(''),h('rt',{},part.reading)));pos=part.end;}output.append(document.createTextNode(chars.slice(pos).join('')));};
+    sentence.addEventListener('input',()=>{const follow=$('#capture-follow');if(follow)follow.checked=false;});
+    studyCleanup=window.GalshelfCapture.mount({root,games:state.games,API,h,button,busy,toast,onSentence:text=>{sentence.value=text;show();},onWord:text=>{word.value=text;word.focus();}});
+    root.append(h('section',{class:'study-panel'},h('h2',{},'阅读与注音'),h('p',{},'实时台词可自动填入，也可手动粘贴。填写词语及读音后生成注音，词典查询将在浏览器中打开 Weblio。'),sentence,h('div',{class:'study-fields'},word,reading,meaning),h('div',{class:'study-actions'},button('生成注音',show,'button primary','book'),button('查询词语',event=>busy(event.currentTarget,()=>API.openDictionary(word.value)),'button subtle','search'),button('保存生词',event=>busy(event.currentTarget,async()=>{const items=await API.saveStudyWord({word:word.value,reading:reading.value,meaning:meaning.value,sentence:sentence.value});display(items);toast('已保存到当前账户的生词本。');}),'button subtle','plus')),output,h('p',{class:'study-note'},'读音与释义目前由你填写；已保存生词只属于当前本地账户。'),list));
+  }
   function heading(title, subtitle, eyebrow, action) {
     return h('div', { class: 'page-heading' }, h('div', {}, h('div', { class: 'eyebrow' }, eyebrow), h('h1', {}, title), h('p', { class: 'subtitle' }, subtitle)), action);
   }

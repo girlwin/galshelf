@@ -1,0 +1,24 @@
+MeguLit 1.3.5 source reuse in galshelf 1.3.0 (modified 2026-11-10)
+Upstream: https://github.com/ilynthn/MeguLit/tree/v1.3.5
+Copyright: ilynthn and MeguLit contributors. GPL-3.0-or-later.
+
+Unmodified files:
+  core/furigana.js -> src/furigana.js
+  native/HookTarget.cs -> assets/native/HookTarget.cs
+  native/HookInjector.cs -> assets/native/HookInjector.cs
+
+Modified derivative:
+  native/HookBridge.cs -> assets/native/CaptureBridge.cs
+  Retains LunaHook ABI, explicit process identity binding, thread enumeration,
+  text callbacks, history lookup and stream selection. Simplified to original
+  text capture only; translation/embed/render-hiding and custom-hook insertion
+  are absent. Adds bounded JSON events and standard input commands for galshelf.
+
+The combined galshelf distribution is GPL-3.0-or-later; see LICENSE and
+LICENSE-MEGULIT-GPL-3.0.txt. Original galshelf MIT attribution is retained in
+LICENSE-GALSHELF-MIT.txt. Corresponding JavaScript and C# source for shipped
+helpers and the rebuild script are included in resources/app.asar. Complete
+development source is maintained alongside this release in the galshelf repo.
+
+LunaHook/LunaTranslator DLLs are NOT bundled. Users select their own compatible
+runtime folder. Those projects retain their own licenses and source notices.
